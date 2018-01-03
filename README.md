@@ -5,6 +5,6 @@ Tensorflow implementation by the authors [here](https://github.com/tensorflow/mo
 
 ## Implementation plan
 
-[ ] Data preparation - add data_download.py, datasets.py, and config.py from authors implementation to this repo
-[ ] rebar_train - create as Jupyter notebook, with train loop and plotting of results
-[ ] rebar.py - models
+* [ ] Data preparation - add data_download.py, datasets.py, and config.py from authors implementation to this repo
+* [ ] rebar_train - create as Jupyter notebook, with train loop and plotting of results
+* [ ] rebar.py - models
