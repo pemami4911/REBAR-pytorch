@@ -25,7 +25,7 @@ parser.add_argument('--train_size', default=1000000, help='')
 parser.add_argument('--val_size', default=10000, help='')
 
 # Model cfg options here
-parser.add_argument('--task', default='sbn')
+parser.add_argument('--task', default='sbn', help='sbn|toy')
 parser.add_argument('--model', default='SBNDynamicRebar')
 parser.add_argument('--learning_rate', type=float, default=3e-4)
 parser.add_argument('--n_layer', type=int, default=2)

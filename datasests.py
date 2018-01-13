@@ -41,7 +41,7 @@ def load_data(hparams):
 class MNISTDataset(Dataset):
     def __init__(self, binarize=False):
         super(MNISTDataset, self)
-
+      
 def read_MNIST(binarize=False):
   """Reads in MNIST images.
 
