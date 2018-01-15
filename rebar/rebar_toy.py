@@ -53,16 +53,17 @@ class SimpleBernoulli(nn.Module):
   def __init__(self, init_value=0.5):
     super(SimpleBernoulli, self).__init__()
     self.w = nn.Parameter(torch.FloatTensor([init_value]))
-    self.nonlin = nn.Sigmoid()
+    #self.nonlin = nn.Sigmoid()
   
   def forward(self):
     # Returns number between 0 and 1
-    return self.nonlin(self.w)
+    #return self.nonlin(self.w)
+    return self.w
 
 soft_concrete_model = SimpleBernoulli()
 rebar_model = SimpleBernoulli()
 soft_concrete_opt = optim.Adam(soft_concrete_model.parameters(), lr=1e-3)
-rebar_opt = optim.Adam(rebar_model.parameters(), lr=1e-3)
+rebar_opt = optim.Adam(rebar_model.parameters(), lr=1e-4)
 mse = nn.MSELoss()
 
 # sample a minibatch for a single-sample montecarlo estimate
@@ -86,14 +87,14 @@ for i in range(steps+1):
   # rebar estimate
   z, r_hz, r_sz, r_gz = estimators(u, v, rebar_theta)
   # grad p(b) :- d/d_theta log p(b = H(z))
-  grad_nllP = torch.autograd.grad(binary_log_likelihood(r_hz, torch.log(rebar_theta)).split(1), rebar_theta, retain_graph=True, create_graph=True)[0]
+  grad_logP = torch.autograd.grad(binary_log_likelihood(r_hz, torch.log(rebar_theta)).split(1), rebar_theta, retain_graph=True, create_graph=True)[0]
   f_hz = (r_hz - targets) ** 2
   f_sz = (r_sz - targets) ** 2
   f_gz = (r_gz - targets) ** 2
   grad_f_sz = torch.autograd.grad(f_sz.split(1), rebar_theta, retain_graph=True, create_graph=True)[0]
   grad_f_gz = torch.autograd.grad(f_gz.split(1), rebar_theta, retain_graph=True, create_graph=True)[0]
 
-  rebar_estimator = ((f_hz.detach() - eta * f_gz) * -grad_nllP + eta * grad_f_sz - eta * grad_f_gz).mean()
+  rebar_grad_estimator = ((f_hz.detach() - eta * f_gz) * grad_logP + eta * grad_f_sz - eta * grad_f_gz).mean()
 
   if (check_gradients):
     # check gradients
@@ -115,8 +116,10 @@ for i in range(steps+1):
     grad_f_sz_check_norm = torch.norm(grad_f_sz_check - grad_f_sz) / (torch.norm(grad_f_sz) + torch.norm(grad_f_sz_check))
     grad_f_gz_check_norm = torch.norm(grad_f_gz_check - grad_f_gz) / (torch.norm(grad_f_gz) + torch.norm(grad_f_gz_check))
 
+  #pdb.set_trace()
   rebar_opt.zero_grad()
-  rebar_estimator.backward()
+  rebar_model.w.grad = rebar_grad_estimator
+  # rebar_estimator.backward()
   rebar_opt.step()
 
   # print "r_sz", r_sz
@@ -130,7 +133,7 @@ for i in range(steps+1):
     print "step: ", i
     print "hard_concrete_loss", hard_concrete_loss
     print "soft_concrete_loss", soft_concrete_loss
-    print "rebar_estimator", rebar_estimator
+    print "rebar_grad_estimator", rebar_grad_estimator
     #print "rebar_z", z
     print "rebar_loss", rebar_loss
     print "rebar_theta", rebar_theta[0].data

@@ -3,8 +3,10 @@ Implementation and replication of experiments for the [REBAR paper](https://pape
 
 Tensorflow implementation by the authors [here](https://github.com/tensorflow/models/tree/master/research/rebar)
 
+For now, I have implemented REBAR for the toy problem in Section 5.1. See `rebar_toy.ipynb`.
+
 ## Implementation plan
 
-* [ ] Data preparation - add data_download.py, datasets.py, and config.py from authors implementation to this repo
+* [X] Data preparation - add data_download.py, datasets.py, and config.py from authors implementation to this repo
 * [ ] rebar_train - create as Jupyter notebook, with train loop and plotting of results
 * [ ] rebar.py - models
