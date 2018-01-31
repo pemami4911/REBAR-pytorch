@@ -28,9 +28,9 @@ import numpy as np
 import cPickle as pickle
 import datasets
 
-MNIST_URL = 'see README'
-MNIST_BINARIZED_URL = 'see README'
-OMNIGLOT_URL = 'see README'
+MNIST_URL = 'http://yann.lecun.com/exdb/mnist'
+MNIST_BINARIZED_URL = 'http://www.cs.toronto.edu/~larocheh/public/datasets/binarized_mnist'
+OMNIGLOT_URL = 'https://github.com/yburda/iwae/raw/master/datasets/OMNIGLOT/chardata.mat'
 
 MNIST_FLOAT_TRAIN = 'train-images-idx3-ubyte'
 

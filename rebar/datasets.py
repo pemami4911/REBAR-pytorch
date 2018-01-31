@@ -24,7 +24,7 @@ import os
 import scipy.io
 import numpy as np
 import cPickle as pickle
-import config
+import rebar.config as config
 from torch.utils.data import Dataset, DataLoader
 
 def load_data(hparams):
@@ -39,9 +39,17 @@ def load_data(hparams):
   return x_train, x_valid, x_test
 
 class MNISTDataset(Dataset):
-    def __init__(self, binarize=False):
+    def __init__(self, data, binarize=False):
         super(MNISTDataset, self)
-      
+        self.data_set = data
+        self.size = data.shape[0]
+        
+    def __len__(self):
+        return self.size
+    
+    def __getitem__(self, idx):
+        return self.data_set[idx]
+    
 def read_MNIST(binarize=False):
   """Reads in MNIST images.
 
@@ -54,14 +62,14 @@ def read_MNIST(binarize=False):
     x_test: 10k test images
 
   """
-  with gfile.FastGFile(os.path.join(config.DATA_DIR, config.MNIST_BINARIZED), 'r') as f:
+  with open(os.path.join(config.DATA_DIR, config.MNIST_BINARIZED), 'r') as f:
     (x_train, _), (x_valid, _), (x_test, _) = pickle.load(f)
 
   if not binarize:
-    with gfile.FastGFile(os.path.join(config.DATA_DIR, config.MNIST_FLOAT), 'r') as f:
+    with open(os.path.join(config.DATA_DIR, config.MNIST_FLOAT), 'r') as f:
       x_train = np.load(f).reshape(-1, 784)
 
-  return x_train, x_valid, x_test
+  return MNISTDataset(x_train), MNISTDataset(x_valid), MNISTDataset(x_test)
 
 def read_omniglot(binarize=False):
   """Reads in Omniglot images.
@@ -101,3 +109,7 @@ def read_omniglot(binarize=False):
 
   return x_train, x_valid, x_test
 
+if __name__ == '__main__':
+    hparams = {'task': 'sbn', 'dynamic_b': True}
+    train, val, test = load_data(hparams)
+    print(train[0])
