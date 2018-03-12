@@ -23,7 +23,7 @@ import random
 import os
 import scipy.io
 import numpy as np
-import cPickle as pickle
+import pickle
 import rebar.config as config
 from torch.utils.data import Dataset, DataLoader
 
