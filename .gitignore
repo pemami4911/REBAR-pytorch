@@ -1,3 +1,5 @@
 .ipynb_checkpoints/
 rebar/data/
 *.pyc
+rebar/*.pyc
+data/

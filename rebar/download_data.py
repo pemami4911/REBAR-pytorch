@@ -26,7 +26,6 @@ import config
 import struct
 import numpy as np
 import cPickle as pickle
-import datasets
 
 MNIST_URL = 'http://yann.lecun.com/exdb/mnist'
 MNIST_BINARIZED_URL = 'http://www.cs.toronto.edu/~larocheh/public/datasets/binarized_mnist'

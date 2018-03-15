@@ -24,7 +24,7 @@ import os
 import scipy.io
 import numpy as np
 import pickle
-import rebar.config as config
+import config
 from torch.utils.data import Dataset, DataLoader
 
 def load_data(hparams):
@@ -62,11 +62,11 @@ def read_MNIST(binarize=False):
     x_test: 10k test images
 
   """
-  with open(os.path.join(config.DATA_DIR, config.MNIST_BINARIZED), 'r') as f:
+  with open(os.path.join(config.DATA_DIR, config.MNIST_BINARIZED), 'rb') as f:
     (x_train, _), (x_valid, _), (x_test, _) = pickle.load(f)
 
   if not binarize:
-    with open(os.path.join(config.DATA_DIR, config.MNIST_FLOAT), 'r') as f:
+    with open(os.path.join(config.DATA_DIR, config.MNIST_FLOAT), 'rb') as f:
       x_train = np.load(f).reshape(-1, 784)
 
   return MNISTDataset(x_train), MNISTDataset(x_valid), MNISTDataset(x_test)
@@ -110,6 +110,6 @@ def read_omniglot(binarize=False):
   return x_train, x_valid, x_test
 
 if __name__ == '__main__':
-    hparams = {'task': 'sbn', 'dynamic_b': True}
+    hparams = {'task': 'sbn', 'dynamic_b': False}
     train, val, test = load_data(hparams)
     print(train[0])
