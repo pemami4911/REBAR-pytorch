@@ -24,13 +24,12 @@ import os
 import scipy.io
 import numpy as np
 import pickle
-import config
-from torch.utils.data import Dataset, DataLoader
+import rebar.config as config
+from torch.utils.data import Dataset
 
 def load_data(hparams):
   # Load data
   if hparams['task'] in ['sbn', 'sp']:
-    
     reader = read_MNIST
   elif hparams['task'] == 'omni':
     reader = read_omniglot
