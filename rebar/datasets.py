@@ -62,7 +62,7 @@ def read_MNIST(binarize=False):
 
   """
   with open(os.path.join(config.DATA_DIR, config.MNIST_BINARIZED), 'rb') as f:
-    (x_train, _), (x_valid, _), (x_test, _) = pickle.load(f)
+    (x_train, _), (x_valid, _), (x_test, _) = pickle.load(f, encoding = 'bytes')
 
   if not binarize:
     with open(os.path.join(config.DATA_DIR, config.MNIST_FLOAT), 'rb') as f:

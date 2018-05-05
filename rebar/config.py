@@ -19,7 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-DATA_DIR = 'data'
+DATA_DIR = 'data-windows'
 MNIST_BINARIZED = 'mnist_salakhutdinov_07-19-2017.pkl'
 MNIST_FLOAT = 'mnist_train_xs_07-19-2017.npy'
 OMNIGLOT = 'omniglot_07-19-2017.mat'

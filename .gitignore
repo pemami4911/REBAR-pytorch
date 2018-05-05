@@ -3,3 +3,4 @@ rebar/data/
 *.pyc
 rebar/*.pyc
 data/
+data-windows/
