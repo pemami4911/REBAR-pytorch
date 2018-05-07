@@ -1,6 +1,13 @@
+import math
 import torch
 import torch.nn.functional as F
 
+def scaled_variance_init(layer):
+    torch.nn.init.normal(layer.weight, mean=0.0, std=math.sqrt(2.0 / layer.weight.shape[1]))
+    if layer.bias is not None:
+        #torch.nn.init.normal(layer.bias, mean=0.0, std=math.sqrt(2.0 / layer.bias.shape[0]))
+        torch.nn.init.constant(layer.bias, 0.)
+        
 def binary_log_likelihood(y, log_y_hat):
     # standard LL for vectors of binary labels y and log predictions log_y_hat
     return ((y * -F.softplus(-log_y_hat)) + (1 - y) * (-log_y_hat - F.softplus(-log_y_hat))).sum(dim=1)
