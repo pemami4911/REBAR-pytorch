@@ -21,12 +21,13 @@ from __future__ import print_function
 
 import random
 import os
+import sys
+import pickle
 import scipy.io
 import numpy as np
-import pickle
 import rebar.config as config
 from torch.utils.data import Dataset
-
+    
 def load_data(hparams):
   # Load data
   if hparams['task'] in ['sbn', 'sp']:
@@ -62,8 +63,10 @@ def read_MNIST(binarize=False):
 
   """
   with open(os.path.join(config.DATA_DIR, config.MNIST_BINARIZED), 'rb') as f:
+    #(x_train, _), (x_valid, _), (x_test, _) = pickle.load(f)
     (x_train, _), (x_valid, _), (x_test, _) = pickle.load(f, encoding = 'bytes')
 
+  
   if not binarize:
     with open(os.path.join(config.DATA_DIR, config.MNIST_FLOAT), 'rb') as f:
       x_train = np.load(f).reshape(-1, 784)
