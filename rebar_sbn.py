@@ -61,10 +61,10 @@ hparams = {
     'n_layers': 1,
     'dynamic_b': False,
     'ema_beta': 0.999,
-    'train_steps': 6000,
-    'log_every': 50,
+    'train_steps': 1000000,
+    'log_every': 1000,
     'save_every': 100000,
-    'random_seed': 1337
+    'random_seed': 12321
 }
 
 
@@ -111,7 +111,7 @@ def random_sample_soft_v(log_alpha, _, layer, uniform_samples_v, temperature=Non
 
 # In[4]:
 
-# Random samplers TODO
+# Random samplers
 def u_to_v(log_alpha, u, eps = 1e-8):
    """Convert u to tied randomness in v."""
    u_prime = F.sigmoid(-log_alpha)  # g(u') = 0
@@ -122,8 +122,8 @@ def u_to_v(log_alpha, u, eps = 1e-8):
    v_0 = torch.clamp(v_0.clone(), 0, 1).detach()
    v_0 = v_0.clone() * u_prime
    v = u.clone()
-   v[(u > u_prime).detach()] = v_1
-   v[(u <= u_prime).detach()] = v_0
+   v[(u > u_prime).detach()] = v_1[(u > u_prime).detach()]
+   v[(u <= u_prime).detach()] = v_0[(u <= u_prime).detach()]
    # TODO: add pytorch check
    #v = tf.check_numerics(v, 'v sampling is not numerically stable.')
    vv = v + (-v + u).detach()  # v and u are the same up to numerical errors
@@ -340,105 +340,104 @@ class Baseline(nn.Module):
         return self.out(x).squeeze()
 
 
-# In[8]:
+if __name__ == '__main__':
+    # In[8]:
 
-# Random seed
-torch.manual_seed(hparams['random_seed'])
+    # Random seed
+    torch.manual_seed(hparams['random_seed'])
 
-# Load MNIST dataset
-train_xs, val_xs, test_xs = datasets.load_data(hparams)
-# create Dataloader
-train_dataloader = DataLoader(train_xs, shuffle=True, batch_size=hparams['batch_size'], drop_last=True, num_workers=0)
-# mean centering on training data
-mean_xs = Variable(torch.from_numpy(np.mean(train_xs, axis=0)).float(), requires_grad=False)
+    # Load MNIST dataset
+    train_xs, val_xs, test_xs = datasets.load_data(hparams)
+    # create Dataloader
+    train_dataloader = DataLoader(train_xs, shuffle=True, batch_size=hparams['batch_size'], drop_last=True, num_workers=0)
+    # mean centering on training data
+    mean_xs = Variable(torch.from_numpy(np.mean(train_xs, axis=0)).float(), requires_grad=False)
 
+    # In[ ]:
 
-# In[ ]:
+    sbn = SBNRebar(mean_xs)
 
-sbn = SBNRebar(mean_xs)
+    baseline = Baseline(mean_xs)
+    baseline_loss = nn.MSELoss()
+    sbn_opt = optim.Adam(sbn.parameters(), lr=hparams['learning_rate'], betas=(0.9, 0.99999))
+    baseline_opt = optim.Adam(baseline.parameters(), lr=10*hparams['learning_rate'])
 
-baseline = Baseline(mean_xs)
-baseline_loss = nn.MSELoss()
-sbn_opt = optim.Adam(sbn.parameters(), lr=hparams['learning_rate'], betas=(0.9, 0.99999))
-baseline_opt = optim.Adam(baseline.parameters(), lr=10*hparams['learning_rate'])
+    # The main training loop, where we compute REBAR gradients and update model parameters
 
+    # In[ ]:
 
-# The main training loop, where we compute REBAR gradients and update model parameters
+    # Exponential Moving Average for log variance calculation
+    ema_first_moment = 0.
+    ema_second_moment = 0.
+    beta = hparams['ema_beta']
+    log_every = hparams['log_every']
+    save_every = hparams['save_every']
+    n = hparams['train_steps']
 
-# In[ ]:
+    scores = []
+    save_dir = "/tmp/rebar/{}".format(hparams['random_seed'])
+    try:
+        os.makedirs(save_dir)
+    except:
+        pass
+    scores_file = h5py.File(os.path.join(save_dir, 'scores.hdf5'), 'w')
 
-# Exponential Moving Average for log variance calculation
-ema_first_moment = 0.
-ema_second_moment = 0.
-beta = hparams['ema_beta']
-log_every = hparams['log_every']
-save_every = hparams['save_every']
-n = hparams['train_steps']
+    step = 0.
+    while step < n:
+        lHats = []
+        log_grad_variances = []
+        for x in tqdm(train_dataloader):
+            x = Variable(x, requires_grad=False)
+            sbn_outs = sbn.forward(x)
+            baseline_out = baseline.forward(x)
 
-scores = []
-save_dir = "/tmp/rebar/{}".format(hparams['random_seed'])
-try:
-    os.makedirs(save_dir)
-except:
-    pass
-scores_file = h5py.File(os.path.join(save_dir, 'scores.hdf5'), 'w')
+            nvil_gradient = (sbn_outs['hardELBO'].detach() - baseline_out) * \
+                    torch.sum(torch.stack(sbn_outs['logQHard']), 0) + sbn_outs['reinforce_model_grad']
 
-step = 0.
-while step < n:
-    lHats = []
-    log_grad_variances = []
-    for x in tqdm(train_dataloader):
-        x = Variable(x, requires_grad=False)
-        sbn_outs = sbn.forward(x)
-        baseline_out = baseline.forward(x)
-        
-        nvil_gradient = (sbn_outs['hardELBO'].detach() - baseline_out) * \
-                torch.sum(torch.stack(sbn_outs['logQHard']), 0) + sbn_outs['reinforce_model_grad']
+            f_grads = grad(-nvil_gradient.mean(), sbn.parameters(), retain_graph=True)
+            gumbel_grads = grad(sbn_outs['gumbel_cv'].mean(), sbn.parameters())
+            h_grads = sbn.multiply_by_eta(gumbel_grads)
+            total_grads = [(g_a + g_b) for (g_a, g_b) in zip(f_grads, h_grads)]
 
-        f_grads = grad(-nvil_gradient.mean(), sbn.parameters(), retain_graph=True)
-        gumbel_grads = grad(sbn_outs['gumbel_cv'].mean(), sbn.parameters())
-        h_grads = sbn.multiply_by_eta(gumbel_grads)
-        total_grads = [(g_a + g_b) for (g_a, g_b) in zip(f_grads, h_grads)]
+            # training objective
+            lhat = sbn_outs['hardELBO'].mean().detach()
+            lHats.append(lhat.data[0])
+            # baseline loss
+            #baseline_y = baseline_loss(baseline_out, sbn_outs['hardELBO'].detach())
 
-        # training objective
-        lhat = sbn_outs['hardELBO'].mean().detach()
-        lHats.append(lhat.data[0])
-        # baseline loss
-        #baseline_y = baseline_loss(baseline_out, sbn_outs['hardELBO'].detach())
+            # variance summaries
+            first_moment = U.vectorize(total_grads, skip_none=True)
+            second_moment = first_moment ** 2
+            ema_first_moment = (beta * ema_first_moment) + (1 - beta) * first_moment
+            ema_second_moment = (beta * ema_second_moment) + (1 - beta) * second_moment
+            log_grad_variance = torch.log((ema_second_moment.mean() - (ema_first_moment.mean()) ** 2))
+            log_grad_variances.append(log_grad_variance.data[0])
 
-        # variance summaries
-        first_moment = U.vectorize(total_grads, skip_none=True)
-        second_moment = first_moment ** 2
-        ema_first_moment = (beta * ema_first_moment) + (1 - beta) * first_moment
-        ema_second_moment = (beta * ema_second_moment) + (1 - beta) * second_moment
-        log_grad_variance = torch.log((ema_second_moment.mean() - (ema_first_moment.mean()) ** 2))
-        log_grad_variances.append(log_grad_variance.data[0])
-        
-        sbn_opt.zero_grad()
-        #baseline_opt.zero_grad()
+            sbn_opt.zero_grad()
 
-        # set model grads with REBAR gradients
-        for (g, p) in zip(total_grads, sbn.parameters()):
-            p.grad = g
-        sbn_opt.step()
-        
-        # update baseline
-        #baseline_y.backward()
-        #baseline_opt.step()
+            # set model grads with REBAR gradients
+            for (g, p) in zip(total_grads, sbn.parameters()):
+                p.grad = g
+            sbn_opt.step()
 
-        if step % log_every == 0: 
-            #print('NVIL grads')
-            #for f in f_grads:
-            #    print(f.shape, f.mean().data[0], f.var().data[0])
-            #print('Concrete grads')
-            #for h in h_grads:
-            #    print(h.shape, h.mean().data[0], h.var().data[0])
-            print('step: {}, training objective (ELBO): {}, logGradVar: {}'.format(step, lhat.data[0], log_grad_variance.data[0]))
-            print('grad ema first moment: {}'.format(ema_first_moment.mean().data[0]))
-            #pdb.set_trace()
-        if step % save_every == 0:
-            torch.save(sbn, os.path.join(save_dir, 'sbn-step-{}.pt'.format(step)))
-        step += 1
-    scores.append((np.mean(lHats), np.mean(log_grad_variances)))
-scores_file.create_dataset('scores', data=scores)
-scores_file.close()
+            # update baseline
+            # baseline_opt.zero_grad()        
+            # baseline_y.backward()
+            # baseline_opt.step()
+
+            if step % log_every == 0: 
+                #print('NVIL grads')
+                #for f in f_grads:
+                #    print(f.shape, f.mean().data[0], f.var().data[0])
+                #print('Concrete grads')
+                #for h in h_grads:
+                #    print(h.shape, h.mean().data[0], h.var().data[0])
+                print('step: {}, training objective (ELBO): {}, logGradVar: {}'.format(step, lhat.data[0], log_grad_variance.data[0]))
+                print('grad ema first moment: {}'.format(ema_first_moment.mean().data[0]))
+                #pdb.set_trace()
+            if step % save_every == 0:
+                torch.save(sbn, os.path.join(save_dir, 'sbn-step-{}.pt'.format(step)))
+            step += 1
+        scores.append((np.mean(lHats), np.mean(log_grad_variances)))
+    scores_file.create_dataset('scores', data=scores)
+    scores_file.close()

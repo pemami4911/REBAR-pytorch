@@ -5,10 +5,17 @@ Implementation and replication of experiments for the [REBAR paper](https://pape
 
 Tensorflow implementation by the authors [here](https://github.com/tensorflow/models/tree/master/research/rebar)
 
-For now, I have implemented REBAR for the toy problem in Section 5.1. See `rebar_toy.ipynb`.
+## Results
 
-## Implementation plan
+I have implemented REBAR for the toy problem in Section 5.1. See `rebar_toy.ipynb`.
 
-* [X] Data preparation - add data_download.py, datasets.py, and config.py from authors implementation to this repo
-* [ ] rebar_train - create as Jupyter notebook, with train loop and plotting of results
-* [ ] rebar.py - models
+I tried to implement REBAR for the binarized MNIST benchmark and the Sigmoid Belief Network model. Below, you can see the performance of my implementation versus the Tensorflow implementation by the authors. In this run, both models use 1 nonlinear stochastic layer, fixed temperature at 0.5, and fixed eta at 1.0 (the parameter that multiplies the gumbel control variate and is normally optimized with a variance objective). I have poured over my implementation and theirs and can't tell where I went wrong. I have looked at the weight initializations, gradients, etc., but I am new to this area of ML so I probably missed something. If anyone can figure out what's wrong with my implementation (or if it has to do with some weird PyTorch vs. Tensorflow thing??) please let me know!!!
+
+![my_experiment_results](results/results.png)
+
+Here are results for 1 nonlinear stochastic layer on binarized MNIST from the paper.
+
+![paper_results1](results/paper-elbo.png)
+![paper_results2](results/paper-loggradvar.png)
+
+The results I'm getting seem to be slightly better with fixed temperature and eta parameters...
