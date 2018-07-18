@@ -18,4 +18,4 @@ Here are results for 1 nonlinear stochastic layer on binarized MNIST from the pa
 ![paper_results1](results/paper-elbo.png)
 ![paper_results2](results/paper-loggradvar.png)
 
-The results I'm getting seem to be slightly better with fixed temperature and eta parameters...
+The results I'm getting seem to be slightly better with fixed temperature and eta parameters. As noted in Issue #1, REBAR is supposed to include a variance objective for optimizing eta, but I noticed that the eta values were staying very close to 1 when running the author's TF code so I haven't included that yet. 
